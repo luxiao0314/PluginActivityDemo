@@ -8,12 +8,15 @@ import android.os.Handler;
 import android.util.Log;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 /**
- * Created by liuxiaobo on 2018/11/8.
+ * @Description hook AMS和Instrumentation启动activity
+ * @Author lux
+ * @Date 2022/2/17 3:13 下午
+ * @Version
  */
-
 public class HookHelper {
 
     private static final String TAG = "HookHelper";
@@ -76,6 +79,56 @@ public class HookHelper {
         ReflectUtils.setField(Handler.class, "mCallback", mH, new HCallback(mH));
     }
 
+    public static void hook() {
+
+        try {
+            //1.获取IActivityManagerSingleton
+            Object IActivityManagerSingleton = getSingletonByVersion();
+
+            //2.获取mInstance
+            Class<?> singletonclazz = Class.forName("android.util.Singleton");
+            Field mInstanceField = singletonclazz.getDeclaredField("mInstance");
+            mInstanceField.setAccessible(true);
+
+            if (Build.VERSION.SDK_INT == 29) {
+                //Q上需要动态执行create方法
+                Method getMethod = singletonclazz.getMethod("get");
+                getMethod.setAccessible(true);
+                getMethod.invoke(IActivityManagerSingleton);
+            }
+
+            Object mInstance = mInstanceField.get(IActivityManagerSingleton);
+
+            //3.动态代理设置自己的mInstance
+            Object proxyInstance = Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(), mInstance.getClass().getInterfaces(), new IActivityManagerProxy(mInstance));
+
+            //4.设置代理的proxyInstance
+            mInstanceField.set(IActivityManagerSingleton, proxyInstance);
+
+            //5.获取ActivityThread实例
+            Class<?> ActivityThreadclass = Class.forName("android.app.ActivityThread");
+
+            Field sCurrentActivityThreadFiled = ActivityThreadclass.getDeclaredField("sCurrentActivityThread");
+            sCurrentActivityThreadFiled.setAccessible(true);
+            Object sCurrentActivityThread = sCurrentActivityThreadFiled.get(null);
+
+            //6.获取mH实例
+            Field mHFiled = ActivityThreadclass.getDeclaredField("mH");
+            mHFiled.setAccessible(true);
+            Object mH = mHFiled.get(sCurrentActivityThread);
+
+            Field mCallbackFiled = Handler.class.getDeclaredField("mCallback");
+            mCallbackFiled.setAccessible(true);
+            //7.设置进入我们自己的Callback
+
+            mCallbackFiled.set(mH, new MyHandlerCallback((Handler) mH));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("TAG------", e.toString());
+        }
+    }
+
     /**
      * Hook Instrumentation
      *
@@ -99,5 +152,24 @@ public class HookHelper {
 
         // 用InstrumentationProxy代理对象替换原来的Instrumentation对象
         ReflectUtils.setField(activityThreadClazz, "mInstrumentation", currentActivityThread, instrumentationProxy);
+    }
+
+    private static Object getSingletonByVersion() {
+        try {
+            if (Build.VERSION.SDK_INT == 28) {
+                Class<?> clazz = Class.forName("android.app.ActivityManager");
+                Field field = clazz.getDeclaredField("IActivityManagerSingleton");
+                field.setAccessible(true);
+                return field.get(null);
+            } else if (Build.VERSION.SDK_INT == 29) {
+                Class<?> clazz = Class.forName("android.app.ActivityTaskManager");
+                Field field = clazz.getDeclaredField("IActivityTaskManagerSingleton");
+                field.setAccessible(true);
+                return field.get(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

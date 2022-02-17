@@ -13,10 +13,6 @@ import android.text.TextUtils;
 import java.lang.reflect.Method;
 import java.util.List;
 
-/**
- * Created by liuxiaobo on 2018/11/9.
- */
-
 public class InstrumentationProxy extends Instrumentation {
 
     private Instrumentation mInstrumentation;

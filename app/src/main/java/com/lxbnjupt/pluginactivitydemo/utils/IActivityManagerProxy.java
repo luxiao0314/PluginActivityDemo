@@ -6,10 +6,6 @@ import android.util.Log;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
-/**
- * Created by liuxiaobo on 2018/11/8.
- */
-
 public class IActivityManagerProxy implements InvocationHandler {
 
     private static final String TAG = "IActivityManagerProxy";

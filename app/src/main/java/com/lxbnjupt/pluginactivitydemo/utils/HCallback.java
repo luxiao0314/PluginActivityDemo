@@ -4,10 +4,6 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.Message;
 
-/**
- * Created by liuxiaobo on 2018/11/8.
- */
-
 public class HCallback implements Handler.Callback {
 
     private static final int LAUNCH_ACTIVITY = 100;

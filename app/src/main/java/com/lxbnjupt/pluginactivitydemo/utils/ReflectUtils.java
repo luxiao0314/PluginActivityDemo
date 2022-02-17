@@ -2,10 +2,6 @@ package com.lxbnjupt.pluginactivitydemo.utils;
 
 import java.lang.reflect.Field;
 
-/**
- * Created by liuxiaobo on 2018/11/8.
- */
-
 public class ReflectUtils {
 
     public static Field getField(Class clazz, String fieldName) throws Exception {
